@@ -119,6 +119,7 @@
     </div>
 
     <div class="col s9">
+      <div>
       <svg id="sketch-pad"
            class="z-depth-1"
            ng-mousedown="geo.registerClick($event)"
@@ -182,6 +183,7 @@
                 ng-attr-cy="{{ point.y }}"
                 ng-mousedown="geo.registerClick($event, point)" />
       </svg>
+      </div>
 
       <div ng-class="'btn waves-effect amber ' + (geo.showPoints ? 'darken-2' : 'lighten-2')"
            ng-click="geo.showPoints = !geo.showPoints">
