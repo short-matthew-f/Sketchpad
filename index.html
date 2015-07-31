@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketchpad</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/css/materialize.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/js/materialize.min.js"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular.min.js"></script>
+  <script src="js/geometries.js"></script>
+  <script src="js/app.js"></script>
+
+</head>
+<body ng-app="Sketchpad"
+      ng-controller="GeometryController as geo"
+      class="indigo lighten-4">
+
+  <nav>
+    <div class="nav-wrapper indigo darken-1">
+      <a href="#" class="brand-logo">Sketchpad</a>
+    </div>
+  </nav>
+
+  <div class="row">
+    <div class="col s3">
+      <ul id="menu" class="collapsible" data-collapsible="accordion">
+        <li class="amber menu-header">
+          Control Panel
+        </li>
+        <li>
+          <div ng-class="'collapsible-header waves-effect amber ' + (geo.mode == 'select' ? 'darken-2' : 'lighten-2')"
+               ng-click="geo.mode = 'select'">
+            Select
+            <i class="material-icons left">
+              {{ geo.mode == 'select' ? 'check_box' : 'check_box_outline_blank' }}
+            </i>
+          </div>
+          <div class="collapsible-body amber lighten-5">
+            <p>
+              In select mode you can drag points around the screen.  Any objects dependent on the points will adjust accordingly.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div ng-class="'collapsible-header waves-effect amber active ' + (geo.mode == 'addPoints' ? 'darken-2' : 'lighten-2')"
+               ng-click="geo.mode = 'addPoints'">
+            Add Points
+            <i class="material-icons left">
+              {{ geo.mode == 'addPoints' ? 'check_box' : 'check_box_outline_blank' }}
+            </i>
+          </div>
+          <div class="collapsible-body amber lighten-5">
+            <p>
+              This will add points to your sketch.
+            </p>
+            <p>
+              If you click an existing line segment, a <b>midpoint</b> will be added to the sketch.  Midpoints can't be dragged, but instead will always be locked to the middle of the line segment.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div ng-class="'collapsible-header waves-effect amber ' + (geo.mode == 'addLines' ? 'darken-2' : 'lighten-2')"
+               ng-click="geo.mode = 'addLines'">
+            Add Lines
+            <i class="material-icons left">
+              {{ geo.mode == 'addLines' ? 'check_box' : 'check_box_outline_blank' }}
+            </i>
+          </div>
+          <div class="collapsible-body amber lighten-5">
+            <p>
+              This will add lines to your sketch.
+            </p>
+            <p>
+              If you click existing points, they will be used.  Otherwise, new points will be added for you.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div ng-class="'collapsible-header waves-effect amber ' + (geo.mode == 'addCircles' ? 'darken-2' : 'lighten-2')"
+               ng-click="geo.mode = 'addCircles'">
+            Add Circles
+            <i class="material-icons left">
+              {{ geo.mode == 'addCircles' ? 'check_box' : 'check_box_outline_blank' }}
+            </i>
+          </div>
+          <div class="collapsible-body amber lighten-5">
+            <p>
+              This will add circles to your sketch.  The first point assigned will be used as the center, and the second will determine the radius.
+            </p>
+            <p>
+              If you click existing points, they will be used.  Otherwise, new points will be added for you.
+            </p>
+          </div>
+        </li>
+        <li>
+          <div ng-class="'collapsible-header waves-effect amber ' + (geo.mode == 'delete' ? 'darken-2' : 'lighten-2')"
+               ng-click="geo.mode = 'delete'">
+            Delete
+            <i class="material-icons left">
+              {{ geo.mode == 'delete' ? 'check_box' : 'check_box_outline_blank' }}
+            </i>
+          </div>
+          <div class="collapsible-body amber lighten-5">
+            <p>
+              Clicking things will remove them from the sketch.
+            </p>
+            <p>
+              If you remove a point, then any object which depends on it will be removed, too.
+            </p>
+            <p>
+              If you remove a line, then its midpoint will be removed, too.
+            </p>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="col s9">
+      <svg id="sketch-pad"
+           class="z-depth-1"
+           ng-mousedown="geo.registerClick($event)"
+           ng-mousemove="geo.registerMotion($event)"
+           ng-mouseup="geo.releaseClick($event)">
+
+        <!-- draw lines -->
+        <line class="line"
+              ng-repeat="line in geo.lines"
+              ng-attr-x1="{{ line.start.x }}"
+              ng-attr-y1="{{ line.start.y }}"
+              ng-attr-x2="{{ line.end.x }}"
+              ng-attr-y2="{{ line.end.y }}"
+              ng-mousedown="geo.registerClick($event, line)" />
+
+        <!-- draw circles -->
+        <circle class="circle"
+                ng-repeat="circle in geo.circles"
+                ng-attr-cx="{{ circle.centerPoint.x }}"
+                ng-attr-cy="{{ circle.centerPoint.y }}"
+                ng-attr-r="{{ circle.r }}"
+                ng-mousedown="geo.registerClick($event, circle)" />
+
+        <!-- add in radii lines -->
+        <line ng-if="geo.showPoints"
+              class="radius"
+              ng-repeat="circle in geo.circles"
+              ng-attr-x1="{{ circle.centerPoint.x }}"
+              ng-attr-y1="{{ circle.centerPoint.y }}"
+              ng-attr-x2="{{ circle.radiusPoint.x }}"
+              ng-attr-y2="{{ circle.radiusPoint.y }}" />
+
+        <!-- add in current display if creating new line -->
+        <line ng-if="geo.mode === 'addLines' && geo.pendingPoints.length === 1"
+              class="new-line"
+              ng-attr-x1="{{ geo.pendingPoints[0].x }}"
+              ng-attr-y1="{{ geo.pendingPoints[0].y }}"
+              ng-attr-x2="{{ geo.mousePosition.x }}"
+              ng-attr-y2="{{ geo.mousePosition.y }}" />
+
+        <!-- draw circles -->
+        <circle ng-if="geo.mode === 'addCircles' && geo.pendingPoints.length === 1"
+                class="new-circle"
+                ng-attr-cx="{{ geo.pendingPoints[0].x }}"
+                ng-attr-cy="{{ geo.pendingPoints[0].y }}"
+                ng-attr-r="{{ geo.Circle.radius(geo.pendingPoints[0], geo.mousePosition) }}" />
+
+        <!-- add in radii lines -->
+        <line ng-if="geo.mode === 'addCircles' && geo.pendingPoints.length === 1"
+              class="new-radius"
+              ng-attr-x1="{{ geo.pendingPoints[0].x }}"
+              ng-attr-y1="{{ geo.pendingPoints[0].y }}"
+              ng-attr-x2="{{ geo.mousePosition.x }}"
+              ng-attr-y2="{{ geo.mousePosition.y }}" />
+
+        <!-- draw active points -->
+        <circle ng-if="geo.showPoints"
+                ng-repeat="point in geo.points"
+                ng-class="point.htmlClass()"
+                ng-attr-cx="{{ point.x }}"
+                ng-attr-cy="{{ point.y }}"
+                ng-mousedown="geo.registerClick($event, point)" />
+      </svg>
+
+      <div ng-class="'btn waves-effect amber ' + (geo.showPoints ? 'darken-2' : 'lighten-2')"
+           ng-click="geo.showPoints = !geo.showPoints">
+          {{ geo.showPoints ? 'Show Points' : 'Hide Points' }}
+        <i class="material-icons left">
+          {{ geo.showPoints ? 'check_box' : 'check_box_outline_blank' }}
+        </i>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function(){
+      $('.collapsible').collapsible({
+        accordion : false // A setting that changes the collapsible behavior to expandable instead of the default accordion style
+      });
+    });
+  </script>
+</body>
+</html>
