@@ -69,62 +69,63 @@ var clickFunctions = {
   },
 
   'delete': function ($event, obj) {
-    console.log(this.initiatingObject);
-
-    if (!this.initiatingObject) {
-      this.initiatingObject = obj;
-      return;
-    } else if (this.initiatingObject instanceof Point) {
-      var point = this.initiatingObject;
+    if (obj instanceof Point) {
+      var point = obj;
       var index = this.points.indexOf(point);
 
       // destroy the point
       this.points.splice(index, 1);
 
       // and circles which need it
-      var index = 0;
-      while (index < this.circles.length) {
-        var circle = this.circles[index];
-        if (circle.hasPoint(point)) {
-          this.circles.splice(index, 1);
-          index--;
+      this.circles.forEach(function (circle) {
+        if ( circle.needsPoint(point) ) {
+          clickFunctions['delete'].call(this, $event, circle);
+        } else {
+          index = circle.dividers.indexOf(point);
+          if ( index > -1 ) {
+            circle.dividers.splice(index, 1);
+            circle.update();
+          }
         }
-        index++;
-      }
+      }.bind(this));
 
       // and lines which need it
-      var index = 0;
-      while (index < this.lines.length) {
-        var line = this.lines[index];
-        if (line.hasPoint(point)) {
-          this.lines.splice(index, 1);
-          index--;
+      this.lines.forEach(function (line) {
+        if ( line.needsPoint(point) ) {
+          clickFunctions['delete'].call(this, $event, line);
+        } else {
+          index = line.dividers.indexOf(point);
+          if ( index > -1 ) {
+            line.dividers.splice(index, 1);
+            line.update();
+          }
         }
-        index++;
-      }
-    } else if (this.initiatingObject instanceof Circle) {
-      var circle = this.initiatingObject;
+      }.bind(this));
+    } else if (obj instanceof Circle) {
+      var circle = obj;
       var index = this.circles.indexOf(circle);
       this.circles.splice(index, 1);
-    } else if (this.initiatingObject instanceof Line) {
-      var line = this.initiatingObject;
+
+      circle.dividers.forEach(function (point) {
+        clickFunctions['delete'].call(this, $event, point);
+      }.bind(this));
+
+      circle.dividers = [];
+    } else if (obj instanceof Line) {
+      var line = obj;
       var index = this.lines.indexOf(line);
       this.lines.splice(index, 1);
 
-      if (line.midPoint) {
-        var index = this.points.indexOf(line.midPoint);
-        this.points.splice(index);
-      }
+      line.dividers.forEach(function (point) {
+        clickFunctions['delete'].call(this, $event, point);
+      }.bind(this));
     }
-
-    this.initiatingObject = undefined;
   },
 
   'addPoints': function ($event, obj) {
-    if (obj instanceof Line) {
-      var point = obj.addMidpoint();
+    if (obj instanceof Line || obj instanceof Circle) {
+      var point = obj.addDivider();
       this.points.push(point);
-
       this.initiatingObject = obj;
     } else if (!this.initiatingObject) {
       var point = new Point({
